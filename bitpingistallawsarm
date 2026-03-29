@@ -9,6 +9,8 @@ PASS_BITPING="nguyenvinhcao123@gmail.com"
 
 # 2. XÓA MYSTERIUM CŨ VÀ CHẠY LẠI VỚI LUẬT 10MB
 docker rm -f myst1 myst2 >/dev/null 2>&1 || true
+echo -e "\e[33m[WAIT] Đang chờ 10 giây để Docker giải phóng cổng mạng cho Mysterium...\e[0m"
+sleep 10
 
 docker run -d --network my_network_1 --cap-add NET_ADMIN $DNS_OPTS \
   -p ${IP_PRIVATE_A}:4449:4449 \
@@ -25,6 +27,8 @@ docker run -d --network my_network_2 --cap-add NET_ADMIN $DNS_OPTS \
 # 3. KÉO IMAGE VÀ CHẠY THÊM BITPING (CÓ GIỚI HẠN 10MB)
 docker pull bitping/bitpingd:latest >/dev/null 2>&1
 docker rm -f bitping1 bitping2 >/dev/null 2>&1 || true
+echo -e "\e[33m[WAIT] Đang chờ 10 giây để dọn dẹp tiến trình Bitping cũ (nếu có)...\e[0m"
+sleep 10
 
 docker run -d --network my_network_1 --restart unless-stopped $DNS_OPTS \
   --name bitping1 \
