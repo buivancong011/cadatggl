@@ -1,0 +1,63 @@
+#!/bin/bash
+set -e
+
+# ==== HÀM HIỂN THỊ LOG ====
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+warn() { echo -e "\e[33m[WAIT] $1\e[0m"; }
+
+# ==========================================
+# 1. LẤY LẠI THÔNG SỐ VÀ DANH SÁCH IP (UPCLOUD STYLE)
+# ==========================================
+log "Đang dò tìm danh sách IP thực tế trên VPS..."
+MAIN_IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n 1)
+mapfile -t ALL_IPS < <(ip -4 addr show dev $MAIN_IFACE | grep -w inet | awk '{print $2}' | cut -d/ -f1)
+TOTAL_IPS=${#ALL_IPS[@]}
+
+DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
+EMAIL_BITPING="nguyenvinhcao123@gmail.com"
+PASS_BITPING="nguyenvinhcao123@gmail.com" 
+
+# ==========================================
+# 2. XÓA MYSTERIUM CŨ 
+# ==========================================
+log "Đang xóa $TOTAL_IPS container Mysterium cũ..."
+for i in "${!ALL_IPS[@]}"; do
+    INDEX=$((i+1))
+    docker rm -f "myst_node_$INDEX" "bitping_node_$INDEX" >/dev/null 2>&1 || true
+done
+
+warn "Đang chờ 10 giây để Docker giải phóng toàn bộ cổng mạng..."
+sleep 10
+
+# ==========================================
+# 3. KÉO IMAGE VÀ CHẠY LẠI (CÓ GIÁP 10MB)
+# ==========================================
+log "Đang tải image Bitping..."
+docker pull bitping/bitpingd:latest >/dev/null 2>&1
+
+log "🚀 Khởi chạy lại Mysterium và cài thêm Bitping cho $TOTAL_IPS IP..."
+for i in "${!ALL_IPS[@]}"; do
+    INDEX=$((i+1))
+    IP="${ALL_IPS[$i]}"
+    NET_NAME="my_network_$INDEX"
+    SUFFIX="node_$INDEX"
+
+    # 1. Mysterium (Thêm giới hạn log 10MB)
+    docker run -d --network "$NET_NAME" --cap-add NET_ADMIN $DNS_OPTS \
+      -p ${IP}:4449:4449 \
+      --name "myst_$SUFFIX" -v "myst-data${INDEX}:/var/lib/mysterium-node" \
+      --log-opt max-size=10m --log-opt max-file=3 \
+      --restart unless-stopped mysteriumnetwork/myst:latest service --agreed-terms-and-conditions >/dev/null
+
+    # 2. Bitping (Thêm giới hạn log 10MB & Tách Volume)
+    docker run -d --network "$NET_NAME" --restart unless-stopped $DNS_OPTS \
+      --name "bitping_$SUFFIX" \
+      -v "bitping_data_${INDEX}:/root/.bitpingd" \
+      --log-opt max-size=10m --log-opt max-file=3 \
+      -e BITPING_EMAIL="$EMAIL_BITPING" \
+      -e BITPING_PASSWORD="$PASS_BITPING" \
+      bitping/bitpingd:latest >/dev/null
+done
+
+log "==== HOÀN TẤT CẬP NHẬT CHO HỆ THỐNG UPCLOUD ===="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "myst|bitping|NAMES"
