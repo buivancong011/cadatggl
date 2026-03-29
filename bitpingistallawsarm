@@ -4,8 +4,8 @@ IP_PRIVATE_A=$(/sbin/ip -4 -o addr show scope global noprefixroute $MAIN_IFACE |
 IP_PRIVATE_B=$(/sbin/ip -4 -o addr show scope global dynamic $MAIN_IFACE | awk '{gsub(/\/.*/,"",$4); print $4}' | head -n 1)
 DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
 
-EMAIL_BITPING="nguyenvincao123@gmail.com"
-PASS_BITPING="ĐIỀN_MẬT_KHẨU_BITPING_CỦA_ÔNG_VÀO_ĐÂY" 
+EMAIL_BITPING="nguyenvinhcao123@gmail.com"
+PASS_BITPING="nguyenvinhcao123@gmail.com" 
 
 # 2. XÓA MYSTERIUM CŨ VÀ CHẠY LẠI VỚI LUẬT 10MB
 docker rm -f myst1 myst2 >/dev/null 2>&1 || true
