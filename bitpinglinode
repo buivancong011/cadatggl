@@ -1,0 +1,49 @@
+#!/bin/bash
+set -e
+
+# ==== HÀM HIỂN THỊ LOG ====
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+warn() { echo -e "\e[33m[WAIT] $1\e[0m"; }
+
+# ==========================================
+# 1. CẤU HÌNH THÔNG SỐ
+# ==========================================
+DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
+
+EMAIL_BITPING="nguyenvinhcao123@gmail.com"
+PASS_BITPING="nguyenvinhcao123@gmail.com" 
+
+# ==========================================
+# 2. XÓA MYSTERIUM CŨ VÀ CẬP NHẬT LUẬT 10MB
+# ==========================================
+log "Đang xóa container Mysterium cũ..."
+docker rm -f myst >/dev/null 2>&1 || true
+
+warn "Đang chờ 10 giây để Docker giải phóng cổng mạng..."
+sleep 10
+
+log "Khởi chạy lại Mysterium với Giáp bảo vệ 10MB..."
+docker run -d --restart unless-stopped --cap-add NET_ADMIN $DNS_OPTS \
+  -p 4449:4449 \
+  --name myst -v myst-data:/var/lib/mysterium-node \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  mysteriumnetwork/myst:latest service --agreed-terms-and-conditions >/dev/null
+
+# ==========================================
+# 3. KÉO IMAGE VÀ CHẠY THÊM BITPING
+# ==========================================
+log "Đang tải image và dọn dẹp tiến trình Bitping (nếu có)..."
+docker pull bitping/bitpingd:latest >/dev/null 2>&1
+docker rm -f bitping >/dev/null 2>&1 || true
+
+log "Khởi chạy Bitping (giới hạn 10MB)..."
+docker run -d --restart unless-stopped $DNS_OPTS \
+  --name bitping \
+  -v bitping_data:/root/.bitpingd \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  -e BITPING_EMAIL="$EMAIL_BITPING" \
+  -e BITPING_PASSWORD="$PASS_BITPING" \
+  bitping/bitpingd:latest >/dev/null
+
+log "==== HOÀN TẤT CẬP NHẬT (MYST + BITPING) CHO LINODE ===="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "myst|bitping|NAMES"
