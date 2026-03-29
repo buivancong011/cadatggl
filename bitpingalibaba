@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# 1. CẤU HÌNH TÀI KHOẢN BITPING
+EMAIL_BITPING="nguyenvinhcao123@gmail.com"
+PASS_BITPING="nguyenvinhcao123@gmail.com" # Nhớ kiểm tra lại pass nếu ông dùng pass khác nhé
+DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
+
+# 2. TẢI VÀ CHẠY BITPING (CÓ GIÁP 10MB)
+echo -e "\e[32m[INFO] Đang tải image Bitping...\e[0m"
+docker pull bitping/bitpingd:latest >/dev/null 2>&1
+
+echo -e "\e[32m[INFO] Dọn dẹp phiên bản cũ (nếu có)...\e[0m"
+docker rm -f bitping >/dev/null 2>&1 || true
+
+echo -e "\e[32m[INFO] Khởi chạy Bitping với lưới bảo vệ 10MB...\e[0m"
+docker run -d --restart unless-stopped $DNS_OPTS \
+  --name bitping \
+  -v bitping_data:/root/.bitpingd \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  -e BITPING_EMAIL="$EMAIL_BITPING" \
+  -e BITPING_PASSWORD="$PASS_BITPING" \
+  bitping/bitpingd:latest >/dev/null
+
+echo -e "\e[32m[INFO] ==== ĐÃ THÊM BITPING THÀNH CÔNG ====\e[0m"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
