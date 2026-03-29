@@ -1,0 +1,46 @@
+# 1. LẤY LẠI CÁC THÔNG SỐ CẦN THIẾT TỪ HỆ THỐNG ĐANG CHẠY
+MAIN_IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n 1)
+IP_PRIVATE_A=$(/sbin/ip -4 -o addr show scope global noprefixroute $MAIN_IFACE | awk '{gsub(/\/.*/,"",$4); print $4}' | head -n 1)
+IP_PRIVATE_B=$(/sbin/ip -4 -o addr show scope global dynamic $MAIN_IFACE | awk '{gsub(/\/.*/,"",$4); print $4}' | head -n 1)
+DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
+
+EMAIL_BITPING="nguyenvincao123@gmail.com"
+PASS_BITPING="ĐIỀN_MẬT_KHẨU_BITPING_CỦA_ÔNG_VÀO_ĐÂY" 
+
+# 2. XÓA MYSTERIUM CŨ VÀ CHẠY LẠI VỚI LUẬT 10MB
+docker rm -f myst1 myst2 >/dev/null 2>&1 || true
+
+docker run -d --network my_network_1 --cap-add NET_ADMIN $DNS_OPTS \
+  -p ${IP_PRIVATE_A}:4449:4449 \
+  --name myst1 -v myst-data1:/var/lib/mysterium-node \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  --restart unless-stopped mysteriumnetwork/myst:latest service --agreed-terms-and-conditions
+
+docker run -d --network my_network_2 --cap-add NET_ADMIN $DNS_OPTS \
+  -p ${IP_PRIVATE_B}:4449:4449 \
+  --name myst2 -v myst-data2:/var/lib/mysterium-node \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  --restart unless-stopped mysteriumnetwork/myst:latest service --agreed-terms-and-conditions
+
+# 3. KÉO IMAGE VÀ CHẠY THÊM BITPING (CÓ GIỚI HẠN 10MB)
+docker pull bitping/bitpingd:latest >/dev/null 2>&1
+docker rm -f bitping1 bitping2 >/dev/null 2>&1 || true
+
+docker run -d --network my_network_1 --restart unless-stopped $DNS_OPTS \
+  --name bitping1 \
+  -v bitping_data1:/root/.bitpingd \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  -e BITPING_EMAIL="$EMAIL_BITPING" \
+  -e BITPING_PASSWORD="$PASS_BITPING" \
+  bitping/bitpingd:latest
+
+docker run -d --network my_network_2 --restart unless-stopped $DNS_OPTS \
+  --name bitping2 \
+  -v bitping_data2:/root/.bitpingd \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  -e BITPING_EMAIL="$EMAIL_BITPING" \
+  -e BITPING_PASSWORD="$PASS_BITPING" \
+  bitping/bitpingd:latest
+
+echo -e "\e[32m[INFO] Đã cập nhật xong Mysterium và cài thêm Bitping!\e[0m"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "myst|bitping"
