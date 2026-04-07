@@ -9,7 +9,7 @@ docker run -d \
   --log-opt max-size=5m --log-opt max-file=2 --ulimit nofile=1048576:1048576 \
   --dns 1.1.1.1 --dns 1.0.0.1 \
   -p 4449:4449 \
-  -p 56000-56100:56000-56100/udp \
+  -p 10000-60000:10000-60000/udp \
   -v myst-data:/var/lib/mysterium-node \
   mysteriumnetwork/myst:latest \
   service --agreed-terms-and-conditions
