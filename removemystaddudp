@@ -1,0 +1,29 @@
+#!/bin/bash
+# ==========================================
+# SCRIPT UPDATE MYSTERIUM - OPEN NAT (VINH CAO)
+# ==========================================
+
+# Khai báo lại các biến tối ưu để chạy độc lập không sinh lỗi
+DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
+DOCKER_OPTS="--log-opt max-size=5m --log-opt max-file=2 --ulimit nofile=1048576:1048576"
+
+echo -e "\e[33m[WARN] Đang xóa container Mysterium cũ...\e[0m"
+docker rm -f myst >/dev/null 2>&1 || true
+
+echo -e "\e[32m[INFO] Đang kéo image mới nhất (nếu có)...\e[0m"
+docker pull mysteriumnetwork/myst:latest >/dev/null 2>&1
+
+echo -e "\e[32m[INFO] Đang khởi tạo lại Mysterium với Open NAT (UDP 56000-56100)...\e[0m"
+docker run -d \
+  --name myst \
+  --restart unless-stopped \
+  --cap-add NET_ADMIN \
+  $DOCKER_OPTS $DNS_OPTS \
+  -p 4449:4449 \
+  -p 56000-56100:56000-56100/udp \
+  -v myst-data:/var/lib/mysterium-node \
+  mysteriumnetwork/myst:latest \
+  service --agreed-terms-and-conditions --udp.ports="56000:56100" >/dev/null
+
+echo -e "\e[32m[INFO] ==== HOÀN TẤT CẬP NHẬT ==== \e[0m"
+docker ps -a | grep myst
