@@ -18,7 +18,7 @@ docker run -d \
   --restart always \
   --memory="150m" --cpus="0.3" \
   --log-opt max-size=1m --log-opt max-file=2 \
-  nguyenvinhcao123/titanacc2done:latest >/dev/null
+  nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null
 
 echo -e "\e[32m[INFO] 5. Khởi chạy Titan Node 2 (Đi qua IP B)...\e[0m"
 docker run -d \
@@ -29,7 +29,7 @@ docker run -d \
   --restart always \
   --memory="150m" --cpus="0.3" \
   --log-opt max-size=1m --log-opt max-file=2 \
-  nguyenvinhcao123/titanacc2done:latest >/dev/null
+  nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null
 
 echo -e "\e[32m[INFO] ==== HOÀN TẤT THÊM TITAN NODE CHO AWS MULTI-IP ==== \e[0m"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep titan
