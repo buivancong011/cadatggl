@@ -1,0 +1,52 @@
+#!/bin/bash
+set -e
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+err() { echo -e "\e[31m[ERROR] $1\e[0m"; exit 1; }
+
+# ==========================================
+# 1. ĐẾM LẠI IP TRÊN HỆ THỐNG
+# ==========================================
+log "📡 Đang dò tìm lại danh sách IP để rải Titan..."
+MAIN_IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n 1)
+[ -z "$MAIN_IFACE" ] && err "Không tìm thấy Interface chính!"
+
+mapfile -t ALL_IPS < <(ip -4 addr show dev $MAIN_IFACE | grep -w inet | awk '{print $2}' | cut -d/ -f1)
+TOTAL_IPS=${#ALL_IPS[@]}
+
+if [ "$TOTAL_IPS" -eq 0 ]; then
+    err "LỖI: Không tìm thấy IP nào để chạy Titan!"
+fi
+
+log "🔥 Phát hiện $TOTAL_IPS IP. Chuẩn bị chạy $TOTAL_IPS node Titan..."
+
+# ==========================================
+# 2. TẢI VÀ CHẠY TITAN
+# ==========================================
+log "Đang tải Image Titan..."
+docker pull nguyenvinhcao123/titanacc2done:latest >/dev/null 2>&1
+
+for i in "${!ALL_IPS[@]}"; do
+    INDEX=$((i+1))
+    NET="my_network_$INDEX"
+    SUFFIX="node_$INDEX"
+
+    log " -> Dọn dẹp và khởi chạy Titan ($SUFFIX) trên mạng $NET..."
+    docker rm -f titan_$SUFFIX >/dev/null 2>&1 || true
+
+    docker run -d \
+      --name titan_$SUFFIX \
+      --network $NET \
+      --cap-add=SYS_ADMIN \
+      --dns 1.1.1.1 --dns 1.0.0.1 \
+      --restart always \
+      --memory="150m" \
+      --cpus="0.3" \
+      --log-opt max-size=1m \
+      --log-opt max-file=2 \
+      nguyenvinhcao123/titanacc2done:latest >/dev/null
+done
+
+echo "------------------------------------------------------"
+log "==== HOÀN TẤT THÊM $TOTAL_IPS TITAN NODE CHO VINH CAO ===="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep titan
