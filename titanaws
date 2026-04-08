@@ -7,7 +7,7 @@ echo -e "\e[33m[WARN] 2. Dọn dẹp Titan cũ (nếu có)...\e[0m"
 docker rm -f titan_forever1 titan_forever2 >/dev/null 2>&1 || true
 
 echo -e "\e[32m[INFO] 3. Đang tải Image Titan mới nhất...\e[0m"
-docker pull nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null 2>&1
+docker pull nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null 2>&1
 
 echo -e "\e[32m[INFO] 4. Khởi chạy Titan Node 1 (Đi qua IP A)...\e[0m"
 docker run -d \
@@ -18,7 +18,7 @@ docker run -d \
   --restart always \
   --memory="150m" --cpus="0.3" \
   --log-opt max-size=1m --log-opt max-file=2 \
-  nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null
+  nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null
 
 echo -e "\e[32m[INFO] 5. Khởi chạy Titan Node 2 (Đi qua IP B)...\e[0m"
 docker run -d \
@@ -29,7 +29,7 @@ docker run -d \
   --restart always \
   --memory="150m" --cpus="0.3" \
   --log-opt max-size=1m --log-opt max-file=2 \
-  nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null
+  nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null
 
 echo -e "\e[32m[INFO] ==== HOÀN TẤT THÊM TITAN NODE CHO AWS MULTI-IP ==== \e[0m"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep titan
