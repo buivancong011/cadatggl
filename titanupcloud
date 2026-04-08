@@ -24,7 +24,7 @@ log "🔥 Phát hiện $TOTAL_IPS IP. Chuẩn bị chạy $TOTAL_IPS node Titan.
 # 2. TẢI VÀ CHẠY TITAN
 # ==========================================
 log "Đang tải Image Titan..."
-docker pull nguyenvinhcao123/titanacc2done:latest >/dev/null 2>&1
+docker pull nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null 2>&1
 
 for i in "${!ALL_IPS[@]}"; do
     INDEX=$((i+1))
@@ -44,7 +44,7 @@ for i in "${!ALL_IPS[@]}"; do
       --cpus="0.3" \
       --log-opt max-size=1m \
       --log-opt max-file=2 \
-      nguyenvinhcao123/titanacc2done:latest >/dev/null
+      nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null
 done
 
 echo "------------------------------------------------------"
