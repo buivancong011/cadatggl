@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+
+log "1. Cài đặt Docker (nếu máy chưa có)..."
+if ! command -v docker &> /dev/null; then
+    curl -fsSL https://get.docker.com | sh >/dev/null 2>&1
+    sudo systemctl enable --now docker
+fi
+
+log "2. Dọn dẹp container Titan cũ (nếu có)..."
+docker rm -f titan_node >/dev/null 2>&1 || true
+
+log "3. Đang tải Image Titan mới nhất..."
+docker pull nguyenvinhcao123/titanacc2done:latest >/dev/null 2>&1
+
+log "4. Khởi chạy 1 Node Titan duy nhất..."
+docker run -d \
+  --name titan_node \
+  --cap-add=SYS_ADMIN \
+  --dns 1.1.1.1 --dns 1.0.0.1 \
+  --restart always \
+  --memory="150m" \
+  --cpus="0.3" \
+  --log-opt max-size=1m \
+  --log-opt max-file=2 \
+  nguyenvinhcao123/titanacc2done:latest >/dev/null
+
+echo "------------------------------------------------------"
+log "==== HOÀN TẤT CHẠY 1 NODE TITAN CHO VINH CAO ===="
+docker ps -a | grep titan_node
