@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+err() { echo -e "\e[31m[ERROR] $1\e[0m"; exit 1; }
+
+log "Đang tải Image Titan mới nhất..."
+docker pull nguyenvinhcao123/titanacc2done:latest >/dev/null 2>&1
+
+# ==========================================
+# TỰ ĐỘNG ĐẾM IP VÀ CHẠY VÒNG LẶP TITAN
+# ==========================================
+MAIN_IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n 1)
+[ -z "$MAIN_IFACE" ] && err "Không tìm thấy Interface mạng chính!"
+
+mapfile -t ALL_IPS < <(ip -o -4 addr show dev $MAIN_IFACE | grep -w inet | awk '{print $4}' | cut -d/ -f1)
+TOTAL_IPS=${#ALL_IPS[@]}
+
+if [ "$TOTAL_IPS" -eq 0 ]; then
+    err "Không tìm thấy IP nào để chạy Titan!"
+fi
+
+log "🔥 Phát hiện $TOTAL_IPS IP. Bắt đầu rải $TOTAL_IPS Titan Node..."
+
+for i in "${!ALL_IPS[@]}"; do
+    INDEX=$((i+1))
+    NET="my_network_$INDEX"
+
+    log " -> Đang dọn dẹp và khởi chạy Titan Node $INDEX trên mạng $NET..."
+    docker rm -f titan_forever$INDEX >/dev/null 2>&1 || true
+
+    docker run -d \
+      --name titan_forever$INDEX \
+      --network $NET \
+      --cap-add=SYS_ADMIN \
+      --dns 1.1.1.1 --dns 1.0.0.1 \
+      --restart always \
+      --memory="150m" --cpus="0.3" \
+      --log-opt max-size=1m --log-opt max-file=2 \
+      nguyenvinhcao123/titanacc2done:latest >/dev/null
+done
+
+echo "------------------------------------------------------"
+log "==== HOÀN TẤT RẢI TITAN TỰ ĐỘNG CÙNG HỆ THỐNG ===="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep titan
