@@ -13,7 +13,7 @@ log "2. Dọn dẹp container Titan cũ (nếu có)..."
 docker rm -f titan_node >/dev/null 2>&1 || true
 
 log "3. Đang tải Image Titan mới nhất..."
-docker pull nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null 2>&1
+docker pull nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null 2>&1
 
 log "4. Khởi chạy 1 Node Titan duy nhất..."
 docker run -d \
@@ -25,7 +25,7 @@ docker run -d \
   --cpus="0.3" \
   --log-opt max-size=1m \
   --log-opt max-file=2 \
-  nguyenvinhcao123/titanacc4nguyenvinhson:latest >/dev/null
+  nguyenvinhcao123/titanacc3nguyenvinhcao123:latest >/dev/null
 
 echo "------------------------------------------------------"
 log "==== HOÀN TẤT CHẠY 1 NODE TITAN CHO VINH CAO ===="
