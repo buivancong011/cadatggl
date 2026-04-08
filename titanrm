@@ -1,0 +1,34 @@
+#!/bin/bash
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+warn() { echo -e "\e[33m[WARN] $1\e[0m"; }
+
+echo "------------------------------------------------------"
+log "BẮT ĐẦU CHIẾN DỊCH QUÉT SẠCH TITAN NETWORK"
+echo "------------------------------------------------------"
+
+log "1. Đang dò tìm các Node Titan lẩn trốn trên hệ thống..."
+# Lấy danh sách ID của các container có chữ "titan"
+TITAN_CONTAINERS=$(docker ps -a -q -f name=titan)
+
+if [ -z "$TITAN_CONTAINERS" ]; then
+    warn "Không tìm thấy container Titan nào. Máy chủ đã sạch bóng!"
+else
+    # Đếm số lượng container tìm thấy
+    COUNT=$(echo "$TITAN_CONTAINERS" | wc -l)
+    log "Phát hiện $COUNT container Titan. Đang tiến hành tiêu diệt..."
+    
+    # Xóa ép buộc (Force remove)
+    docker rm -f $TITAN_CONTAINERS >/dev/null 2>&1
+    log "✅ Đã gỡ bỏ thành công toàn bộ container Titan!"
+fi
+
+log "2. Xóa bộ cài (Image) Titan để trả lại không gian ổ cứng SSD..."
+docker rmi -f nguyenvinhcao123/titanacc2done:latest >/dev/null 2>&1 || true
+
+log "3. Dọn dẹp rác hệ thống (Network mồ côi, cache thừa)..."
+docker system prune -f >/dev/null 2>&1
+
+echo "------------------------------------------------------"
+log "==== KẾT THÚC DỌN DẸP: MÁY CHỦ ĐÃ SẠCH SẼ ==== "
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
