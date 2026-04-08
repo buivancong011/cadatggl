@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo -e "\e[32m[INFO] Đang tìm kiếm các container Titan...\e[0m"
+
+# Lấy danh sách tên các container chứa chữ "titan"
+TITAN_CONTAINERS=$(docker ps -a --format "{{.Names}}" | grep titan || true)
+
+if [ -z "$TITAN_CONTAINERS" ]; then
+    echo -e "\e[33m[WARN] Không tìm thấy container Titan nào trên máy!\e[0m"
+else
+    # Chuyển các dấu xuống dòng thành khoảng trắng để chạy chung 1 lệnh docker restart
+    CONTAINER_LIST=$(echo $TITAN_CONTAINERS | tr '\n' ' ')
+    
+    echo -e "\e[32m[INFO] Đã tìm thấy: $CONTAINER_LIST\e[0m"
+    echo -e "\e[32m[INFO] Đang tiến hành Restart, vui lòng đợi...\e[0m"
+    
+    docker restart $CONTAINER_LIST >/dev/null
+    
+    echo "------------------------------------------------------"
+    echo -e "\e[32m[INFO] ==== HOÀN TẤT RESTART TITAN ==== \e[0m"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep titan
+fi
