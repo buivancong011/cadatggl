@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+
+# Bốc lại đúng cấu hình tối ưu từ script tổng của ông
+DNS_OPTS="--dns 1.1.1.1 --dns 1.0.0.1"
+DOCKER_OPTS="--log-opt max-size=5m --log-opt max-file=2 --ulimit nofile=1048576:1048576"
+
+log "Đang tải Image Mysterium mới nhất..."
+docker pull mysteriumnetwork/myst:latest >/dev/null 2>&1
+
+# ==========================================
+# DÒ LẠI IP THEO ĐÚNG SCRIPT GỐC CỦA ÔNG
+# ==========================================
+MAIN_IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n 1)
+mapfile -t ALL_IPS < <(ip -o -4 addr show dev $MAIN_IFACE | grep -w inet | awk '{print $4}' | cut -d/ -f1)
+TOTAL_IPS=${#ALL_IPS[@]}
+
+log "🔥 Tự động nhận diện $TOTAL_IPS IP. Bắt đầu gọi lại dàn Mysterium..."
+
+for i in "${!ALL_IPS[@]}"; do
+    INDEX=$((i+1))
+    BIND_IP="${ALL_IPS[$i]}"
+    NET="my_network_$INDEX"
+    VOL="myst-data$INDEX"
+    NAME="myst$INDEX"
+
+    log " -> Đang dọn dẹp $NAME cũ (nếu có bị kẹt)..."
+    docker rm -f $NAME >/dev/null 2>&1 || true
+
+    log " -> Khởi chạy $NAME trên IP $BIND_IP (Nhận volume backup: $VOL)..."
+    docker run -d \
+      --network $NET \
+      --cap-add NET_ADMIN \
+      $DOCKER_OPTS $DNS_OPTS \
+      -p ${BIND_IP}:4449:4449 \
+      -v $VOL:/var/lib/mysterium-node \
+      --name $NAME \
+      --restart unless-stopped \
+      mysteriumnetwork/myst:latest service --agreed-terms-and-conditions >/dev/null
+done
+
+echo "------------------------------------------------------"
+log "==== HOÀN TẤT GỌI LẠI MYSTERIUM TỪ BACKUP ===="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep myst
