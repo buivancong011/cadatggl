@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+warn() { echo -e "\e[33m[WARN] $1\e[0m"; }
+
+echo "------------------------------------------------------"
+log "BẮT ĐẦU CHIẾN DỊCH XÓA SẠCH MYSTERIUM VÀ VOLUME"
+echo "------------------------------------------------------"
+
+# 1. Tìm tất cả các container có chứa chữ "myst"
+MYST_CONTAINERS=$(docker ps -a --format "{{.Names}}" | grep -i "myst" || true)
+
+if [ -z "$MYST_CONTAINERS" ]; then
+    warn "Không tìm thấy container Mysterium nào trên hệ thống!"
+else
+    # Chuyển đổi dấu xuống dòng thành khoảng trắng để xử lý
+    CONTAINERS_LIST=$(echo "$MYST_CONTAINERS" | tr '\n' ' ')
+    log "Phát hiện các container Mysterium: $CONTAINERS_LIST"
+    
+    for CONTAINER in $MYST_CONTAINERS; do
+        # 2. "Tra khảo" container để lấy tên Volume của nó trước khi xóa
+        VOLUMES=$(docker inspect -f '{{ range .Mounts }}{{ .Name }} {{ end }}' $CONTAINER 2>/dev/null || true)
+        
+        # 3. Trảm container trước
+        log "Đang tiêu diệt container: $CONTAINER..."
+        docker rm -f $CONTAINER >/dev/null 2>&1
+        
+        # 4. Đốt nhà (Xóa volume)
+        for VOL in $VOLUMES; do
+            if [ -n "$VOL" ] && [ "$VOL" != "<no value>" ]; then
+                log " -> Đang xóa sạch dữ liệu trong volume: $VOL..."
+                docker volume rm $VOL >/dev/null 2>&1 || true
+            fi
+        done
+    done
+fi
+
+# 5. Quét vét máng (Tìm các Volume có chữ "myst" bị mồ côi từ trước)
+ORPHAN_VOLUMES=$(docker volume ls -q | grep -i "myst" || true)
+if [ -n "$ORPHAN_VOLUMES" ]; then
+    log "Phát hiện volume mồ côi. Đang dọn dẹp nốt..."
+    # Xóa hàng loạt
+    echo "$ORPHAN_VOLUMES" | xargs -I {} docker volume rm {} >/dev/null 2>&1 || true
+fi
+
+# 6. Xóa bộ cài (Image) để trả lại dung lượng ổ cứng
+log "Đang xóa Image gốc của Mysterium..."
+docker rmi -f mysteriumnetwork/myst:latest >/dev/null 2>&1 || true
+
+log "Dọn rác Docker thừa..."
+docker system prune -f >/dev/null 2>&1
+
+echo "------------------------------------------------------"
+log "==== KẾT THÚC: MÁY CHỦ ĐÃ SẠCH BÓNG MYSTERIUM ==== "
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
