@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+log() { echo -e "\e[32m[INFO] $1\e[0m"; }
+warn() { echo -e "\e[33m[WARN] $1\e[0m"; }
+
+echo "------------------------------------------------------"
+log "🚀 KHỞI ĐỘNG HỆ THỐNG AUTO-UPDATE BITPING"
+echo "------------------------------------------------------"
+
+# 1. Tìm tất cả các container có tên chứa chữ "bitping"
+BITPING_CONTAINERS=$(docker ps -a --format '{{.Names}}' | grep -i "bitping" || true)
+
+if [ -z "$BITPING_CONTAINERS" ]; then
+    warn "Không tìm thấy container Bitping nào trên hệ thống. Hủy lệnh!"
+    exit 0
+fi
+
+# Chuyển đổi danh sách xuống dòng thành hàng ngang để đưa vào lệnh
+CONTAINER_LIST=$(echo "$BITPING_CONTAINERS" | tr '\n' ' ')
+log "Phát hiện các Node Bitping đang chạy: $CONTAINER_LIST"
+log "Đang kiểm tra phiên bản mới trên Docker Hub..."
+
+# 2. Gọi thần binh Watchtower (Chế độ chạy 1 lần - Run Once)
+# Cơ chế: Tự động tải image mới -> Áp dụng 100% cấu hình cũ -> Xóa image rác (--cleanup)
+docker run --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower:latest \
+  --cleanup \
+  --run-once \
+  $CONTAINER_LIST
+
+echo "------------------------------------------------------"
+log "==== KẾT THÚC: BITPING ĐÃ LÊN BẢN MỚI NHẤT & SẠCH RÁC ===="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep bitping
